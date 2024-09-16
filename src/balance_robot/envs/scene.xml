@@ -24,7 +24,7 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="-0.5 -0.5 -1" directional="true"/>
-    <geom name="floor" size="0 0 0.05" pos="0 0 -0.01" type="plane" material="groundplane"/>
+    <geom name="floor" size="0 0 0.05" pos="0 0 -0.05" type="plane" material="groundplane"/>
   </worldbody>
 
   <contact>

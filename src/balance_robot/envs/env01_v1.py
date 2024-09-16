@@ -29,7 +29,7 @@ class Env01(MujocoEnv, utils.EzPickle):
         observation_space = Box(
             np.array([-math.pi, -math.pi, -80, -80]), 
             np.array([math.pi, math.pi, 80, 80]),
-            dtype=np.float64
+            dtype=np.float32
         )
         MujocoEnv.__init__(
             self,
@@ -42,7 +42,7 @@ class Env01(MujocoEnv, utils.EzPickle):
 
     def _set_action_space(self):
         # called by init in parent class
-        v_mag = 2.0
+        v_mag = 4.0
         self.action_space = Box(
             np.array([-v_mag, -v_mag]), 
             np.array([v_mag, v_mag]),
@@ -58,7 +58,6 @@ class Env01(MujocoEnv, utils.EzPickle):
 
         bounced = self.data.body("l_wheel").xpos[2] > 0.045 or self.data.body("r_wheel").xpos[2] > 0.045
 
-
         # print("a")
         # print(a)
 
@@ -73,7 +72,6 @@ class Env01(MujocoEnv, utils.EzPickle):
         # print(self.data.joint('torso_l_wheel').qvel[0])
         ob = self._get_obs()
         terminated = np.abs(ob[0]) > 0.5 or bounced
-        # print(a)
         if self.render_mode == "human":
             self.render()
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
@@ -85,19 +83,18 @@ class Env01(MujocoEnv, utils.EzPickle):
             size=self.model.nq, low=-0.01, high=0.01
         )
         qpos[2] = 0
-        # qvel = self.init_qvel + self.np_random.uniform(
-        #     size=self.model.nv, low=-0.01, high=0.01
-        # )
-        # self.set_state(qpos, qvel)
-        # qpos = self.init_qpos
-        qvel = self.init_qvel
 
-        # print("qpos")
-        # print(self.init_qpos)
-        # print(qpos)
-        # print("qvel")
-        # print(self.init_qvel)
-        # print(qvel)
+        # face a random direction
+        x_rot = (np.random.random() - 0.5) * 2 * math.pi
+        # rotate and pitch slightly
+        y_rot = (np.random.random() - 0.5) * 0.4
+        z_rot = (np.random.random() - 0.5) * 0.4
+        euler_angles = [x_rot, y_rot, z_rot]
+        # Convert to quaternion
+        rotation = Rotation.from_euler('xyz', euler_angles)
+        qpos[3:7] = rotation.as_quat()
+
+        qvel = self.init_qvel
 
         self.set_state(qpos, qvel)
         return self._get_obs()
