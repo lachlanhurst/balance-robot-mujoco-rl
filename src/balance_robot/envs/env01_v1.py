@@ -11,6 +11,8 @@ from scipy.spatial.transform import Rotation
 DEFAULT_CAMERA_CONFIG = {
     "trackbodyid": 0,
     "distance": 2.04,
+    "elevation": -25,
+    "azimuth": 45,
 }
 
 
