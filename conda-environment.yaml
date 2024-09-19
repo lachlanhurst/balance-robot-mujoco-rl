@@ -10,4 +10,6 @@ dependencies:
   - gymnasium==0.29.1
   - tensorboard==2.17.1
   - imageio==2.35.1
+  - moviepy==1.0.3
+  - onnx==1.15.0
   - pip
