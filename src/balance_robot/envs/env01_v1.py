@@ -9,7 +9,7 @@ from scipy.spatial.transform import Rotation
 
 
 DEFAULT_CAMERA_CONFIG = {
-    "trackbodyid": 0,
+    "trackbodyid": 1,
     "distance": 2.04,
     "elevation": -25,
     "azimuth": 45,
@@ -23,19 +23,27 @@ class Env01(MujocoEnv, utils.EzPickle):
             "rgb_array",
             "depth_array",
         ],
+        "render_fps": 500,
     }
 
     def __init__(self, **kwargs):
         utils.EzPickle.__init__(self, **kwargs)
-        # observation_space = Box(low=-np.inf, high=np.inf, shape=(2,), dtype=np.float64)
+
+        # pitch, pitch_dot, yaw_dot, left wheel speed, right wheel speed
+        # observation_space = Box(
+        #     np.array([-math.pi, -math.pi * 2, -math.pi * 2, -80, -80]), 
+        #     np.array([math.pi, math.pi * 2, math.pi * 2, 80, 80]),
+        #     dtype=np.float32
+        # )
         observation_space = Box(
-            np.array([-math.pi, -math.pi, -80, -80]), 
-            np.array([math.pi, math.pi, 80, 80]),
+            np.array([-math.pi, -math.pi * 2,  -80, -80]), 
+            np.array([math.pi, math.pi * 2, 80, 80]),
             dtype=np.float32
         )
+
         MujocoEnv.__init__(
             self,
-            str(pathlib.Path(__file__).parent.joinpath('scene.xml')),
+            str(pathlib.Path(__file__).parent.joinpath('env01_v1.xml')),
             20,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
@@ -44,7 +52,7 @@ class Env01(MujocoEnv, utils.EzPickle):
 
     def _set_action_space(self):
         # called by init in parent class
-        v_mag = 4.0
+        v_mag = 2.0
         self.action_space = Box(
             np.array([-v_mag, -v_mag]), 
             np.array([v_mag, v_mag]),
@@ -55,25 +63,27 @@ class Env01(MujocoEnv, utils.EzPickle):
     def step(self, a):
         reward = 1.0
 
-        # reward -= (self.data.body("l_wheel").xpos[2] - 0.034)
-        # reward -= (self.data.body("r_wheel").xpos[2] - 0.034)
-
-        bounced = self.data.body("l_wheel").xpos[2] > 0.045 or self.data.body("r_wheel").xpos[2] > 0.045
-
-        # print("a")
-        # print(a)
-
         vel_l = self.data.joint('torso_l_wheel').qvel[0] + a[0]
         vel_r = self.data.joint('torso_r_wheel').qvel[0] + a[1]
 
         a[0] = vel_l
         a[1] = vel_r
 
+        target_velocity = 0
+        target_yaw_dot = 0
+
+        average_wheel_speed = (vel_l * -1 + vel_r) / 2.0
+        dv = target_velocity - average_wheel_speed
+        # reward -= 0.05 * abs(dv)
+
+        dyd = target_yaw_dot - self.get_yaw_dot()
+        reward -= 0.025 * abs(dyd)
+
         # print(self.data.joint('torso_l_wheel').qvel[0])
         self.do_simulation(a, self.frame_skip)
         # print(self.data.joint('torso_l_wheel').qvel[0])
         ob = self._get_obs()
-        terminated = np.abs(ob[0]) > 0.5 or bounced
+        terminated = np.abs(ob[0]) > (50 * math.pi / 180)
         if self.render_mode == "human":
             self.render()
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
@@ -124,10 +134,19 @@ class Env01(MujocoEnv, utils.EzPickle):
         # direction as it's rotated 180deg from the other
         return (vel_m_0, vel_m_1)
 
+    def get_yaw_dot(self):
+        angular = self.data.joint('robot_body_joint').qvel[-3:]
+        return angular[2]
+
     def _get_obs(self):
         pitch = self.get_pitch()
         pitch_dot = self.get_pitch_dot()
+        yaw_dot = self.get_yaw_dot()
         wheel_vel_l, wheel_vel_r = self.get_wheel_velocities()
 
-        return np.array([pitch, pitch_dot, wheel_vel_l, wheel_vel_r]).ravel()
-        # return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
+        return np.array(
+            # [pitch, pitch_dot, yaw_dot, wheel_vel_l, wheel_vel_r],
+            [pitch, pitch_dot, wheel_vel_l, wheel_vel_r],
+            dtype=np.float32
+        ).ravel()
+
