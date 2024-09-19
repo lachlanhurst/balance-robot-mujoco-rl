@@ -24,13 +24,8 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="-0.5 -0.5 -1" directional="true"/>
-    <geom name="floor" size="0 0 0.05" pos="0 0 -0.05" type="plane" material="groundplane"/>
+    <geom name="floor" size="0 0 0.05" pos="0 0 -0.02" type="plane" material="groundplane"/>
   </worldbody>
-
-  <contact>
-    <pair geom1="floor" geom2="l_wheel_geom" friction="0.5 0.5 0.07 0.001 0.001" solref="0.02 0.5" solimp="0.5 0.5 0.002"/>
-    <pair geom1="floor" geom2="r_wheel_geom" friction="0.5 0.5 0.07 0.001 0.001" solref="0.02 0.5" solimp="0.5 0.5 0.002"/>
-  </contact>
 
 </mujoco>
 
