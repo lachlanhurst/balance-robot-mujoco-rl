@@ -42,9 +42,5 @@ if __name__ == '__main__':
         output_filename,
         opset_version=11,
         input_names=['input'],
-        output_names=['output'],
-        dynamic_axes={
-            'input': {0: 'batch_size'},
-            'output': {0: 'batch_size'}
-        }
+        output_names=['output']
     )
