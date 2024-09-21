@@ -1,12 +1,15 @@
+import click
 import gymnasium as gym
+import logging
+import os
 import stable_baselines3
+import torch
+
+from pathlib import Path
 from stable_baselines3.common.callbacks import (
     StopTrainingOnNoModelImprovement, StopTrainingOnRewardThreshold, EvalCallback
 )
 from stable_baselines3.common.monitor import Monitor
-import logging
-import os
-import click
 
 # while not called directly, we need to import this so the environments are registered
 import balance_robot
@@ -19,6 +22,51 @@ logger.setLevel(logging.INFO)
 MODEL_DIR = "models"
 LOG_DIR = "logs"
 RECORDING_DIR = "movies"
+
+
+@click.command(name="convert", help="Convert a PyTorch model to ONNX format")
+@click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
+@click.pass_context
+def convert(ctx: dict, environment: str):
+    """ Converts model to ONNX format """
+    env = gym.make(environment, render_mode='rgb_array')
+
+    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+
+    model_file = ctx.obj['MODEL_PATH']
+    if model_file is None:
+        # then assume default name
+        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}", "best_model.zip")
+
+    if not os.path.isfile(model_file):
+        raise RuntimeError(f"Could not open model file: {model_file}")
+
+    logger.info(f"Converting model to ONNX")
+    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Environment: {environment}")
+    logger.info(f"Model: {model_file}")
+
+    model = algorithm_class.load(model_file, env=env)
+
+    # Get the underlying PyTorch model (policy network)
+    pytorch_model = model.policy
+
+    # Create a dummy input based on the observation space
+    dummy_input = torch.zeros(1, *env.observation_space.shape)
+
+    input_path = Path(model_file)
+    output_path = input_path.with_suffix('.onnx')
+
+    logger.info(f"Output file: {str(output_path)}")
+    # Export the model to ONNX format
+    torch.onnx.export(
+        pytorch_model,
+        dummy_input,
+        str(output_path),
+        opset_version=11,
+        input_names=['input'],
+        output_names=['output']
+    )
 
 
 @click.command(name="test", help="Test the current model")
@@ -138,6 +186,7 @@ def cli(ctx: dict, algorithm: str, model: str | os.PathLike):
     ctx.obj['MODEL_PATH'] = model
 
 
+cli.add_command(convert)
 cli.add_command(test)
 cli.add_command(train)
 
