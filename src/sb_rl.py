@@ -51,6 +51,10 @@ def convert(ctx: dict, environment: str):
     # Get the underlying PyTorch model (policy network)
     pytorch_model = model.policy
 
+    # The model must be in evaluation mode for export. If it's in training mode, behaviors
+    # like dropout and batch normalization will yield non-deterministic results.
+    pytorch_model.eval()
+
     # Create a dummy input based on the observation space
     dummy_input = torch.zeros(1, *env.observation_space.shape)
 
