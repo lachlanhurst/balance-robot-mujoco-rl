@@ -6,6 +6,7 @@ import os
 import onnx
 import onnxruntime as ort
 import stable_baselines3
+import tensorflow as tf
 import torch
 
 from pathlib import Path
@@ -167,6 +168,60 @@ def test_onnx(ctx: dict, environment: str, show_io: bool):
         run_loop_count += 1
 
 
+@click.command(name="test-tflite", help="Test a tflite model")
+@click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
+@click.option('--show-io', is_flag=True, default=False, help="log model inputs and outputs")
+@click.pass_context
+def test_tflite(ctx: dict, environment: str, show_io: bool):
+    """ Test a tflite model by running in MuJoCo interactively """
+    env = gym.make(environment, render_mode='human')
+
+    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+
+    model_file = ctx.obj['MODEL_PATH']
+    if model_file is None:
+        # then assume default name
+        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}", "best_model.tflite")
+
+    if not os.path.isfile(model_file):
+        raise RuntimeError(f"Could not open model file: {model_file}")
+
+    logger.info(f"Starting tflite test simulation")
+    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Environment: {environment}")
+    logger.info(f"Model: {model_file}")
+
+    interpreter = tf.lite.Interpreter(model_path=model_file)
+    interpreter.allocate_tensors()
+
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    run_loop_count = 0
+    obs = env.reset()[0]
+    while True:
+        input_tensor = np.array([obs], dtype=np.float32)
+
+        interpreter.set_tensor(input_details[0]['index'], input_tensor)
+        interpreter.invoke()
+        output_data = interpreter.get_tensor(output_details[0]['index'])[0]
+
+        # WHY!?
+        # is this because the gym action space is -2.0 to 2.0 and not -1.0 to 1.0?
+        output_data[0] = output_data[0] * 2
+        output_data[1] = output_data[1] * 2
+
+        if show_io and run_loop_count % 30 == 0:
+            logger.info(str(list(obs) + list(output_data)))
+
+        obs, _, terminated, truncated, _ = env.step(output_data)
+
+        if terminated or truncated:
+            break
+
+        run_loop_count += 1
+
+
 @click.command(name="train", help="Train a model with a given environment")
 @click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
 @click.pass_context
@@ -254,6 +309,7 @@ def cli(ctx: dict, algorithm: str, model: str | os.PathLike):
 cli.add_command(convert)
 cli.add_command(test)
 cli.add_command(test_onnx)
+cli.add_command(test_tflite)
 cli.add_command(train)
 
 
