@@ -54,6 +54,62 @@ def test(ctx: dict, environment: str):
             break
 
 
+@click.command(name="train", help="Train a model with a given environment")
+@click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
+@click.pass_context
+def train(ctx: dict, environment: str):
+    """ Train a model by with a given MuJoCo environment """
+
+    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+
+    env = gym.make(environment, render_mode='rgb_array')
+    env = Monitor(env)
+    env = gym.wrappers.RecordVideo(
+        env,
+        video_folder=RECORDING_DIR,
+        video_length=0,
+        episode_trigger = lambda x: x % 50 == 0,
+    )
+
+    logger.info(f"Starting training process")
+    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Environment: {environment}")
+
+    model_file = ctx.obj['MODEL_PATH']
+    if model_file is None:
+        # no model given, so create a new one
+        model = algorithm_class('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=LOG_DIR)
+        logger.info(f"Model: starting with new model")
+    elif os.path.isfile(model_file):
+        # start with an existing model
+        model = algorithm_class.load(model_file, env=env, tensorboard_log=LOG_DIR)
+        logger.info(f"Model: starting with {model_file}")
+    else:
+        raise RuntimeError(f"Model file {model_file} does not exist")
+
+    callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=6000, verbose=1)
+    stop_train_callback = StopTrainingOnNoModelImprovement(
+        max_no_improvement_evals=5,
+        min_evals=10000,
+        verbose=1
+    )
+
+    eval_callback = EvalCallback(
+        env,
+        eval_freq=10000,
+        callback_on_new_best=callback_on_best,
+        callback_after_eval=stop_train_callback,
+        verbose=1,
+        best_model_save_path=os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}"),
+    )
+
+    model.learn(
+        total_timesteps=int(1e10),
+        tb_log_name=f"{environment}_{algorithm_class.__name__}",
+        callback=eval_callback
+    )
+
+
 @click.group()
 @click.option(
     '-a',
@@ -80,10 +136,10 @@ def cli(ctx: dict, algorithm: str, model: str | os.PathLike):
     ctx.ensure_object(dict)
     ctx.obj['ALGORITHM_CLASS'] = algorithm_class
     ctx.obj['MODEL_PATH'] = model
-    print(model)
 
 
 cli.add_command(test)
+cli.add_command(train)
 
 
 def __make_folders():
