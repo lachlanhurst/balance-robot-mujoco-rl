@@ -71,8 +71,9 @@ def convert(ctx: dict, environment: str):
 
 @click.command(name="test", help="Test the current model")
 @click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
+@click.option('--show-io', is_flag=True, default=False, help="log model inputs and outputs")
 @click.pass_context
-def test(ctx: dict, environment: str):
+def test(ctx: dict, environment: str, show_io: bool):
     """ Test a model by running in MuJoCo interactively """
     env = gym.make(environment, render_mode='human')
 
@@ -93,13 +94,18 @@ def test(ctx: dict, environment: str):
 
     model = algorithm_class.load(model_file, env=env)
 
-    obs = env.reset()[0]   
+    run_loop_count = 0
+    obs = env.reset()[0]
     while True:
         action, _ = model.predict(obs)
+        if show_io and run_loop_count % 30 == 0:
+            logger.info(str(list(obs) + list(action)))
         obs, _, terminated, truncated, _ = env.step(action)
 
         if terminated or truncated:
             break
+
+        run_loop_count += 1
 
 
 @click.command(name="train", help="Train a model with a given environment")
