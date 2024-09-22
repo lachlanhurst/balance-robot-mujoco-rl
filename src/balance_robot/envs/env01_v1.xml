@@ -28,8 +28,8 @@
   </worldbody>
 
   <contact>
-    <pair geom1="floor" geom2="l_wheel_geom" friction="0.7 0.7 0.1" solref="0.02 0.5" solimp="0.5 0.5 0.002"/>
-    <pair geom1="floor" geom2="r_wheel_geom" friction="0.7 0.7 0.1" solref="0.02 0.5" solimp="0.5 0.5 0.002"/>
+    <pair geom1="floor" geom2="l_wheel_geom" friction="0.9 0.9 0.1" solref="0.02 0.5" solimp="0.5 0.5 0.002"/>
+    <pair geom1="floor" geom2="r_wheel_geom" friction="0.9 0.9 0.1" solref="0.02 0.5" solimp="0.5 0.5 0.002"/>
   </contact>
 
 </mujoco>
