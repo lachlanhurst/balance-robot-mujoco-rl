@@ -217,6 +217,73 @@ def test_tflite(ctx: dict, environment: str, show_io: bool):
         run_loop_count += 1
 
 
+@click.command(name="test-tflite-quant", help="Test a quantized tflite model")
+@click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
+@click.pass_context
+def test_tflite_quant(ctx: dict, environment: str):
+    """ Test a tflite model by running in MuJoCo interactively """
+    env = gym.make(environment, render_mode='human')
+
+    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+
+    model_file = ctx.obj['MODEL_PATH']
+    if model_file is None:
+        raise RuntimeError(f"Must provide model file")
+
+    if not os.path.isfile(model_file):
+        raise RuntimeError(f"Could not open model file: {model_file}")
+
+    logger.info(f"Starting tflite quantized test simulation")
+    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Environment: {environment}")
+    logger.info(f"Model: {model_file}")
+
+    interpreter = tf.lite.Interpreter(model_path=model_file)
+    interpreter.allocate_tensors()
+
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    run_loop_count = 0
+    obs = env.reset()[0]
+    while True:
+        # convert observation values to quantized values using parameters from the tflite
+        # quantized model
+        # TODO: this needs to be changed each time the quantization is done
+        obs_quant = [(obs_value / 0.02378239668905735 - 71) for obs_value in obs]
+
+        # need to make sure the quantized values are within the range of an int8, otherwise
+        # the values get wrapped and -129 becomes +127! Which is obviously bad for the
+        # robots balance
+        obs_quant = np.clip(obs_quant, a_min = -128, a_max = 127)
+
+        input_tensor = np.array([obs_quant], dtype=np.int8)
+        logger.info(input_tensor)
+
+        interpreter.set_tensor(input_details[0]['index'], input_tensor)
+        interpreter.invoke()
+        output_data_quant = interpreter.get_tensor(output_details[0]['index'])[0]
+
+        logger.info(output_data_quant)
+
+        # convert quantized model outputs back to floats as expected by the sim
+        # TODO: this needs to be changed each time the quantization is done
+        output_data = np.array(
+            [
+                output_data_quant[0] * 0.0078125,
+                output_data_quant[1] * 0.0078125,
+            ],
+            dtype=np.float32
+        )
+
+        obs, _, terminated, truncated, _ = env.step(output_data)
+
+        if terminated or truncated:
+            break
+
+        run_loop_count += 1
+
+
 @click.command(name="train", help="Train a model with a given environment")
 @click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
 @click.pass_context
@@ -305,6 +372,7 @@ cli.add_command(convert)
 cli.add_command(test)
 cli.add_command(test_onnx)
 cli.add_command(test_tflite)
+cli.add_command(test_tflite_quant)
 cli.add_command(train)
 
 
