@@ -15,6 +15,15 @@ DEFAULT_CAMERA_CONFIG = {
     "azimuth": 45,
 }
 
+# PITCH_MAX = math.pi
+# PITCH_DOT_MAX = math.pi * 2
+# WHEEL_SPEED_MAX = 80.0
+# WHEEL_SPEED_DELTA_MAX = 2.0
+PITCH_MAX = 1
+PITCH_DOT_MAX = 1
+WHEEL_SPEED_MAX = 80.0
+WHEEL_SPEED_DELTA_MAX = 2.0
+
 
 class Env01(MujocoEnv, utils.EzPickle):
     metadata = {
@@ -29,15 +38,13 @@ class Env01(MujocoEnv, utils.EzPickle):
     def __init__(self, **kwargs):
         utils.EzPickle.__init__(self, **kwargs)
 
-        # pitch, pitch_dot, yaw_dot, left wheel speed, right wheel speed
-        # observation_space = Box(
-        #     np.array([-math.pi, -math.pi * 2, -math.pi * 2, -80, -80]), 
-        #     np.array([math.pi, math.pi * 2, math.pi * 2, 80, 80]),
-        #     dtype=np.float32
-        # )
+        # normalize the observation space (well the wheel speeds for now) to
+        # better support quantization later
         observation_space = Box(
-            np.array([-math.pi, -math.pi * 2,  -80, -80]), 
-            np.array([math.pi, math.pi * 2, 80, 80]),
+            # np.array([-1.0, -1.0, -1.0, -1.0]),
+            # np.array([ 1.0,  1.0,  1.0,  1.0]),
+            np.array([-math.pi, -math.pi * 2,  -1.0, -1.0]),
+            np.array([math.pi, math.pi * 2, 1.0, 1.0]),
             dtype=np.float32
         )
 
@@ -52,10 +59,10 @@ class Env01(MujocoEnv, utils.EzPickle):
 
     def _set_action_space(self):
         # called by init in parent class
-        v_mag = 2.0
+        # normalize the action space to better support quantization later
         self.action_space = Box(
-            np.array([-v_mag, -v_mag]), 
-            np.array([v_mag, v_mag]),
+            np.array([-1.0, -1.0]),
+            np.array([1.0, 1.0]),
             dtype=np.float32
         )
         return self.action_space
@@ -63,8 +70,8 @@ class Env01(MujocoEnv, utils.EzPickle):
     def step(self, a):
         reward = 1.0
 
-        vel_l = self.data.joint('torso_l_wheel').qvel[0] + a[0]
-        vel_r = self.data.joint('torso_r_wheel').qvel[0] + a[1]
+        vel_l = self.data.joint('torso_l_wheel').qvel[0] + a[0] * WHEEL_SPEED_DELTA_MAX
+        vel_r = self.data.joint('torso_r_wheel').qvel[0] + a[1] * WHEEL_SPEED_DELTA_MAX
 
         a[0] = vel_l
         a[1] = vel_r
@@ -82,13 +89,15 @@ class Env01(MujocoEnv, utils.EzPickle):
         # print(self.data.joint('torso_l_wheel').qvel[0])
         self.do_simulation(a, self.frame_skip)
         # print(self.data.joint('torso_l_wheel').qvel[0])
-        ob = self._get_obs()
-        terminated = np.abs(ob[0]) > (50 * math.pi / 180)
+
+        # terminate if pitch is greater than 50deg
+        terminated = np.abs(self.get_pitch()) > (50 * math.pi / 180)
         if self.render_mode == "human":
             self.render()
+
+        ob = self._get_obs()
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
         return ob, reward, terminated, False, {}
-
 
     def reset_model(self):
         qpos = self.init_qpos + self.np_random.uniform(
@@ -144,9 +153,17 @@ class Env01(MujocoEnv, utils.EzPickle):
         yaw_dot = self.get_yaw_dot()
         wheel_vel_l, wheel_vel_r = self.get_wheel_velocities()
 
+        pitch_normalized = pitch / PITCH_MAX
+        pitch_dot_normalized = pitch_dot / PITCH_DOT_MAX
+        wheel_vel_l_normalized = wheel_vel_l / WHEEL_SPEED_MAX
+        wheel_vel_r_normalized = wheel_vel_r / WHEEL_SPEED_MAX
+
         return np.array(
-            # [pitch, pitch_dot, yaw_dot, wheel_vel_l, wheel_vel_r],
-            [pitch, pitch_dot, wheel_vel_l, wheel_vel_r],
+            [
+                pitch_normalized,
+                pitch_dot_normalized,
+                wheel_vel_l_normalized,
+                wheel_vel_r_normalized
+            ],
             dtype=np.float32
         ).ravel()
-

@@ -156,10 +156,6 @@ def test_onnx(ctx: dict, environment: str, show_io: bool):
     while True:
         input_tensor = np.array([obs], dtype=np.float32)
         onnx_outputs = session.run([output_name], {input_name: input_tensor})[0][0]
-        # WHY!?
-        # is this because the gym action space is -2.0 to 2.0 and not -1.0 to 1.0?
-        onnx_outputs[0] = onnx_outputs[0] * 2
-        onnx_outputs[1] = onnx_outputs[1] * 2
 
         if show_io and run_loop_count % 30 == 0:
             logger.info(str(list(obs) + list(onnx_outputs)))
@@ -209,11 +205,6 @@ def test_tflite(ctx: dict, environment: str, show_io: bool):
         interpreter.set_tensor(input_details[0]['index'], input_tensor)
         interpreter.invoke()
         output_data = interpreter.get_tensor(output_details[0]['index'])[0]
-
-        # WHY!?
-        # is this because the gym action space is -2.0 to 2.0 and not -1.0 to 1.0?
-        output_data[0] = output_data[0] * 2
-        output_data[1] = output_data[1] * 2
 
         if show_io and run_loop_count % 30 == 0:
             logger.info(str(list(obs) + list(output_data)))
