@@ -6,14 +6,18 @@ import os
 import onnx
 import onnxruntime as ort
 import stable_baselines3
+import stable_baselines3.common
+import stable_baselines3.common.base_class
 import tensorflow as tf
 import torch
 
 from pathlib import Path
+from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import (
     StopTrainingOnNoModelImprovement, StopTrainingOnRewardThreshold, EvalCallback
 )
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.noise import NormalActionNoise
 
 # while not called directly, we need to import this so the environments are registered
 import balance_robot
@@ -28,6 +32,43 @@ LOG_DIR = "logs"
 RECORDING_DIR = "movies"
 
 
+def algorithm_factory(algorithm_name: str, env: gym.Env) -> BaseAlgorithm:
+    """
+    Factory method to create algorithm. Will also include any extra params needed for this
+    particular case (balancing robot)
+    """
+    if algorithm_name == "DDPG":
+        policy_kwargs = dict(
+            net_arch=dict(pi=[300, 200], qf=[200, 150])
+        )
+        action_noise = NormalActionNoise(
+            mean=np.zeros(2),
+            sigma=0.01 * np.ones(2)
+        )
+        model = stable_baselines3.DDPG(
+            "MlpPolicy",
+            env=env,
+            verbose=1,
+            device='cpu',
+            tensorboard_log=LOG_DIR,
+            policy_kwargs=policy_kwargs,
+            action_noise=action_noise
+        )
+        return model
+    else:
+        algorithm_class = getattr(stable_baselines3, algorithm_name, None)
+        if algorithm_class is None:
+            return None
+        model = algorithm_class(
+            'MlpPolicy',
+            env,
+            verbose=1,
+            device='cpu',
+            tensorboard_log=LOG_DIR
+        )
+        return model
+
+
 @click.command(name="convert", help="Convert a PyTorch model to ONNX format")
 @click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
 @click.pass_context
@@ -35,21 +76,22 @@ def convert(ctx: dict, environment: str):
     """ Converts model to ONNX format """
     env = gym.make(environment, render_mode='rgb_array')
 
-    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
 
     model_file = ctx.obj['MODEL_PATH']
     if model_file is None:
         # then assume default name
-        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}", "best_model.zip")
+        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}", "best_model.zip")
 
     if not os.path.isfile(model_file):
         raise RuntimeError(f"Could not open model file: {model_file}")
 
     logger.info(f"Converting model to ONNX")
-    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Algorithm: {algorithm_name}")
     logger.info(f"Environment: {environment}")
     logger.info(f"Model: {model_file}")
 
+    algorithm_class = getattr(stable_baselines3, algorithm_name, None)
     model = algorithm_class.load(model_file, env=env)
 
     # Get the underlying PyTorch model (policy network)
@@ -86,21 +128,22 @@ def test(ctx: dict, environment: str, show_io: bool, show_i: bool):
     """ Test a model by running in MuJoCo interactively """
     env = gym.make(environment, render_mode='human')
 
-    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
 
     model_file = ctx.obj['MODEL_PATH']
     if model_file is None:
         # then assume default name
-        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}", "best_model.zip")
+        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}", "best_model.zip")
 
     if not os.path.isfile(model_file):
         raise RuntimeError(f"Could not open model file: {model_file}")
 
     logger.info(f"Starting test simulation")
-    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Algorithm: {algorithm_name}")
     logger.info(f"Environment: {environment}")
     logger.info(f"Model: {model_file}")
 
+    algorithm_class = getattr(stable_baselines3, algorithm_name, None)
     model = algorithm_class.load(model_file, env=env)
 
     run_loop_count = 0
@@ -128,18 +171,18 @@ def test_onnx(ctx: dict, environment: str, show_io: bool):
     """ Test an ONNX model by running in MuJoCo interactively """
     env = gym.make(environment, render_mode='human')
 
-    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
 
     model_file = ctx.obj['MODEL_PATH']
     if model_file is None:
         # then assume default name
-        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}", "best_model.onnx")
+        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}", "best_model.onnx")
 
     if not os.path.isfile(model_file):
         raise RuntimeError(f"Could not open model file: {model_file}")
 
     logger.info(f"Starting ONNX test simulation")
-    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Algorithm: {algorithm_name}")
     logger.info(f"Environment: {environment}")
     logger.info(f"Model: {model_file}")
 
@@ -176,18 +219,18 @@ def test_tflite(ctx: dict, environment: str, show_io: bool):
     """ Test a tflite model by running in MuJoCo interactively """
     env = gym.make(environment, render_mode='human')
 
-    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
 
     model_file = ctx.obj['MODEL_PATH']
     if model_file is None:
         # then assume default name
-        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}", "best_model.tflite")
+        model_file = os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}", "best_model.tflite")
 
     if not os.path.isfile(model_file):
         raise RuntimeError(f"Could not open model file: {model_file}")
 
     logger.info(f"Starting tflite test simulation")
-    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Algorithm: {algorithm_name}")
     logger.info(f"Environment: {environment}")
     logger.info(f"Model: {model_file}")
 
@@ -224,7 +267,7 @@ def test_tflite_quant(ctx: dict, environment: str):
     """ Test a tflite model by running in MuJoCo interactively """
     env = gym.make(environment, render_mode='human')
 
-    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
 
     model_file = ctx.obj['MODEL_PATH']
     if model_file is None:
@@ -234,7 +277,7 @@ def test_tflite_quant(ctx: dict, environment: str):
         raise RuntimeError(f"Could not open model file: {model_file}")
 
     logger.info(f"Starting tflite quantized test simulation")
-    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Algorithm: {algorithm_name}")
     logger.info(f"Environment: {environment}")
     logger.info(f"Model: {model_file}")
 
@@ -250,7 +293,7 @@ def test_tflite_quant(ctx: dict, environment: str):
         # convert observation values to quantized values using parameters from the tflite
         # quantized model
         # TODO: this needs to be changed each time the quantization is done
-        obs_quant = [(obs_value / 0.02378239668905735 - 71) for obs_value in obs]
+        obs_quant = [(obs_value / 0.026083452627062798 - 67) for obs_value in obs]
 
         # need to make sure the quantized values are within the range of an int8, otherwise
         # the values get wrapped and -129 becomes +127! Which is obviously bad for the
@@ -290,7 +333,7 @@ def test_tflite_quant(ctx: dict, environment: str):
 def train(ctx: dict, environment: str):
     """ Train a model by with a given MuJoCo environment """
 
-    algorithm_class = ctx.obj['ALGORITHM_CLASS']
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
 
     env = gym.make(environment, render_mode='rgb_array')
     env = Monitor(env)
@@ -302,13 +345,14 @@ def train(ctx: dict, environment: str):
     )
 
     logger.info(f"Starting training process")
-    logger.info(f"Algorithm: {algorithm_class.__name__}")
+    logger.info(f"Algorithm: {algorithm_name}")
     logger.info(f"Environment: {environment}")
 
     model_file = ctx.obj['MODEL_PATH']
     if model_file is None:
         # no model given, so create a new one
-        model = algorithm_class('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=LOG_DIR)
+        # model = algorithm_class('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=LOG_DIR)
+        model = algorithm_factory(algorithm_name=algorithm_name, env=env)
         logger.info(f"Model: starting with new model")
     elif os.path.isfile(model_file):
         # start with an existing model
@@ -330,12 +374,12 @@ def train(ctx: dict, environment: str):
         callback_on_new_best=callback_on_best,
         callback_after_eval=stop_train_callback,
         verbose=1,
-        best_model_save_path=os.path.join(MODEL_DIR, f"{environment}_{algorithm_class.__name__}"),
+        best_model_save_path=os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}"),
     )
 
     model.learn(
         total_timesteps=int(1e10),
-        tb_log_name=f"{environment}_{algorithm_class.__name__}",
+        tb_log_name=f"{environment}_{algorithm_name}",
         callback=eval_callback
     )
 
@@ -364,7 +408,7 @@ def cli(ctx: dict, algorithm: str, model: str | os.PathLike):
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
     # by means other than the `if` block below)
     ctx.ensure_object(dict)
-    ctx.obj['ALGORITHM_CLASS'] = algorithm_class
+    ctx.obj['ALGORITHM_NAME'] = algorithm
     ctx.obj['MODEL_PATH'] = model
 
 
