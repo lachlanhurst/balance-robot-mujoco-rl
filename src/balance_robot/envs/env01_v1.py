@@ -54,6 +54,8 @@ class Env01(MujocoEnv, utils.EzPickle):
             20,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
+            width=800,
+            height=800,
             **kwargs,
         )
 
