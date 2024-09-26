@@ -20,7 +20,11 @@ DEFAULT_CAMERA_CONFIG = {
 # PITCH_DOT_MAX = math.pi * 2
 # WHEEL_SPEED_MAX = 80.0
 # WHEEL_SPEED_DELTA_MAX = 2.0
-PITCH_MAX = 1
+# PITCH_MAX = 1
+# PITCH_DOT_MAX = 1
+# WHEEL_SPEED_MAX = 80.0
+# WHEEL_SPEED_DELTA_MAX = 2.0
+PITCH_MAX = 0.25
 PITCH_DOT_MAX = 1
 WHEEL_SPEED_MAX = 80.0
 WHEEL_SPEED_DELTA_MAX = 2.0
@@ -44,8 +48,10 @@ class Env01(MujocoEnv, utils.EzPickle):
         observation_space = Box(
             # np.array([-1.0, -1.0, -1.0, -1.0]),
             # np.array([ 1.0,  1.0,  1.0,  1.0]),
-            np.array([-math.pi, -math.pi * 2,  -1.0, -1.0]),
-            np.array([math.pi, math.pi * 2, 1.0, 1.0]),
+            # np.array([-math.pi, -math.pi * 2,  -1.0, -1.0]),
+            # np.array([math.pi, math.pi * 2, 1.0, 1.0]),
+            np.array([-math.pi * 2, -math.pi * 2,  -1.0, -1.0]),
+            np.array([math.pi * 2, math.pi * 2, 1.0, 1.0]),
             dtype=np.float32
         )
 
