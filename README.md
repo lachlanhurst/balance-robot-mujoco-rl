@@ -49,3 +49,41 @@ Open int8_model.tflite in Neuron, get quantization params and update `test_tflit
 Test the quantized model
 
     python sb_rl.py -a SAC -m ../../saved_model/int8_model.tflite test-tflite-quant -e Env01-v1
+
+Convert quantized model into c array
+
+    xxd -i int8_model.tflite > model.h
+
+The c array can then be included in the microcontroller code along with a suitable tflite library to run inference.
+
+
+# Training notes
+
+## Reinforcement Learning Algorithms
+Some rough notes on training this self balancing robot model.
+
+A2C
+- Didn't train well
+
+TD3
+- Didn't train well
+
+SAC
+- Trained well
+- Reasonable model size
+- Results in a an Exp (exponential) op being included in quantized tflite model. Unfortunately this op doesn't support int8/uint8 inputs in the tflite lib, and as a result this **model could not be run on the microcontroller**.
+
+DDPG
+- Trained ok, once
+- Resulting model had weird behavior where it would balance, but delta wheel speed alternated rapidly between min and max
+- Large model size
+- Successfully ran on microcontroller
+- Microcontroller tflite inference results on int8 quantized model do not match that of desktop tensorflow using same model. Weird model behavior prevented further validation.
+
+PPO
+- On par, maybe better than SAC in respect to training
+- Small model size
+- Model include an Exp op (this prevented SAC from being used), but the onnx2tf model simplification step removes this op from the model.
+- Successfully ran on microcontroller
+- Microcontroller tflite inference results on int8 quantized model do not match that of desktop tensorflow using same model. Tested MuJoCo simulation with real time inference results from microcontroller and the model works.
+- **Recommended algorithm**
