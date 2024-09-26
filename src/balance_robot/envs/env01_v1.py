@@ -92,6 +92,8 @@ class Env01(MujocoEnv, utils.EzPickle):
         self.do_simulation(a, self.frame_skip)
         # print(self.data.joint('torso_l_wheel').qvel[0])
 
+        self._update_camera_follow()
+
         # terminate if pitch is greater than 50deg
         terminated = np.abs(self.get_pitch()) > (50 * math.pi / 180)
         if self.render_mode == "human":
@@ -100,6 +102,16 @@ class Env01(MujocoEnv, utils.EzPickle):
         ob = self._get_obs()
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
         return ob, reward, terminated, False, {}
+
+    def _update_camera_follow(self):
+        # get robot position
+        pos = self.data.body("robot_body").xpos
+        if self.unwrapped.mujoco_renderer.viewer is not None:
+            # viewer is None first time render is called!
+            v = self.unwrapped.mujoco_renderer.viewer
+            # Adjust the camera to follow the robot
+            v.cam.lookat[:] = pos
+            v.cam.distance = 1.0
 
     def reset_model(self):
         qpos = self.init_qpos + self.np_random.uniform(
