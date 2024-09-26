@@ -1,4 +1,5 @@
 import math
+import mujoco
 import numpy as np
 import pathlib
 
@@ -75,9 +76,6 @@ class Env01(MujocoEnv, utils.EzPickle):
         vel_l = self.data.joint('torso_l_wheel').qvel[0] + a[0] * WHEEL_SPEED_DELTA_MAX
         vel_r = self.data.joint('torso_r_wheel').qvel[0] + a[1] * WHEEL_SPEED_DELTA_MAX
 
-        a[0] = vel_l
-        a[1] = vel_r
-
         target_velocity = 0
         target_yaw_dot = 0
 
@@ -89,7 +87,10 @@ class Env01(MujocoEnv, utils.EzPickle):
         reward -= 0.025 * abs(dyd)
 
         # print(self.data.joint('torso_l_wheel').qvel[0])
-        self.do_simulation(a, self.frame_skip)
+        self.data.actuator('motor_l_wheel').ctrl = [vel_l]
+        self.data.actuator('motor_r_wheel').ctrl = [vel_r]
+        mujoco.mj_step(self.model, self.data, nstep=self.frame_skip)
+        mujoco.mj_rnePostConstraint(self.model, self.data)
         # print(self.data.joint('torso_l_wheel').qvel[0])
 
         self._update_camera_follow()
