@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 
 DEFAULT_CAMERA_CONFIG = {
     "trackbodyid": 1,
-    "distance": 2.04,
+    "distance": 1.25,
     "elevation": -25,
     "azimuth": 45,
 }
@@ -112,7 +112,7 @@ class Env01(MujocoEnv, utils.EzPickle):
             v = self.unwrapped.mujoco_renderer.viewer
             # Adjust the camera to follow the robot
             v.cam.lookat[:] = pos
-            v.cam.distance = 1.0
+            v.cam.distance = 1.25
 
     def reset_model(self):
         qpos = self.init_qpos + self.np_random.uniform(
