@@ -111,6 +111,27 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         angular = self.data.joint('robot_body_joint').qvel[-3:]
         return angular[2]
 
+    def _get_reward(self):
+        reward = 1.0
+
+        target_velocity = 0
+        target_yaw_dot = 0
+
+        vel_l = self.data.joint('torso_l_wheel').qvel[0]
+        vel_r = self.data.joint('torso_r_wheel').qvel[0]
+
+        average_wheel_speed = (vel_l * -1 + vel_r) / 2.0
+        dv = target_velocity - average_wheel_speed
+        # penalizing wheel velocity is problematic as sometimes
+        # we need to increase speed to maintain balance.
+        # reward -= 0.05 * abs(dv)
+
+        # small penalty for uneven wheel speeds (turning)
+        dyd = target_yaw_dot - self.get_yaw_dot()
+        reward -= 0.025 * abs(dyd)
+
+        return reward
+
     def _get_obs(self):
         pitch = self.get_pitch()
         pitch_dot = self.get_pitch_dot()

@@ -13,20 +13,10 @@ class Env02(RobotBaseEnv):
         RobotBaseEnv.__init__(self, 'env02_v1.xml', **kwargs)
 
     def step(self, a):
-        reward = 1.0
+        reward = self._get_reward()
 
         vel_l = self.data.joint('torso_l_wheel').qvel[0] + a[0] * WHEEL_SPEED_DELTA_MAX
         vel_r = self.data.joint('torso_r_wheel').qvel[0] + a[1] * WHEEL_SPEED_DELTA_MAX
-
-        target_velocity = 0
-        target_yaw_dot = 0
-
-        average_wheel_speed = (vel_l * -1 + vel_r) / 2.0
-        dv = target_velocity - average_wheel_speed
-        # reward -= 0.05 * abs(dv)
-
-        dyd = target_yaw_dot - self.get_yaw_dot()
-        reward -= 0.025 * abs(dyd)
 
         # print(self.data.joint('torso_l_wheel').qvel[0])
         self.data.actuator('motor_l_wheel').ctrl = [vel_l]
