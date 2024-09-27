@@ -32,7 +32,7 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
             "rgb_array",
             "depth_array",
         ],
-        "render_fps": 500,
+        "render_fps": 200,
     }
 
     def __init__(self, env_filename: str, **kwargs):
@@ -47,7 +47,7 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         MujocoEnv.__init__(
             self,
             str(pathlib.Path(__file__).parent.joinpath(env_filename)),
-            20,
+            50,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             width=800,
