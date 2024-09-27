@@ -356,6 +356,9 @@ def train(ctx: dict, environment: str):
         logger.info(f"Model: starting with new model")
     elif os.path.isfile(model_file):
         # start with an existing model
+        algorithm_class = getattr(stable_baselines3, algorithm_name, None)
+        if algorithm_class is None:
+            raise RuntimeError(f"Couldn't find algorithm {algorithm_name}")
         model = algorithm_class.load(model_file, env=env, tensorboard_log=LOG_DIR)
         logger.info(f"Model: starting with {model_file}")
     else:
