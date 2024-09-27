@@ -98,6 +98,15 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         # direction as it's rotated 180deg from the other
         return (vel_m_0, vel_m_1)
 
+    def get_yaw(self) -> float:
+        quat = self.data.body("robot_body").xquat
+        if quat[0] == 0:
+            return 0
+
+        rotation = Rotation.from_quat([quat[1], quat[2], quat[3], quat[0]])  # Quaternion order is [x, y, z, w]
+        angles = rotation.as_euler('xyz', degrees=False)
+        return angles[2]
+
     def get_yaw_dot(self):
         angular = self.data.joint('robot_body_joint').qvel[-3:]
         return angular[2]
