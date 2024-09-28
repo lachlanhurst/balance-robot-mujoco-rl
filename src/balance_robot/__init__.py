@@ -22,3 +22,17 @@ register(
     max_episode_steps=6000,
     reward_threshold=6000,
 )
+
+register(
+    id="Env03-v1",
+    entry_point="balance_robot.envs.env03_v1:Env03",
+    max_episode_steps=6000,
+    reward_threshold=6000,
+)
+
+register(
+    id="Env03-v2",
+    entry_point="balance_robot.envs.env03_v2:Env03_v2",
+    max_episode_steps=1200,
+    reward_threshold=6000,
+)
