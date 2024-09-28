@@ -128,7 +128,17 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
 
         # small penalty for uneven wheel speeds (turning)
         dyd = target_yaw_dot - self.get_yaw_dot()
-        reward -= 0.025 * abs(dyd)
+        reward -= (0.025 * abs(dyd))
+
+        # penalty for not being vertical 
+        pitch = self.get_pitch()
+        reward -= (abs(pitch))
+
+        # penalty for leaning forward when moving forward (and vice-versa)
+        # will also give reward for leaning back when moving forward
+        # this the main reward component that gets the robot to slow down 
+        r = pitch * dv * 0.5
+        reward += r
 
         return reward
 
