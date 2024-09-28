@@ -19,7 +19,7 @@ DEFAULT_CAMERA_CONFIG = {
 PITCH_MAX = 0.25
 PITCH_DOT_MAX = 1
 WHEEL_SPEED_MAX = 80.0
-WHEEL_SPEED_DELTA_MAX = 2.0
+WHEEL_SPEED_DELTA_MAX = 4.0
 
 """
 Most of the Env code will be common across different scenarios as the robot
