@@ -147,6 +147,7 @@ def test(ctx: dict, environment: str, show_io: bool, show_i: bool):
     model = algorithm_class.load(model_file, env=env)
 
     run_loop_count = 0
+    terminated_loop_count = 0
     obs = env.reset()[0]
     while True:
         action, _ = model.predict(obs)
@@ -157,8 +158,12 @@ def test(ctx: dict, environment: str, show_io: bool, show_i: bool):
 
         obs, _, terminated, truncated, _ = env.step(action)
 
+        if (terminated or truncated) and terminated_loop_count > 200:
+            terminated_loop_count = 0
+            obs = env.reset()[0]
+            # break
         if terminated or truncated:
-            break
+            terminated_loop_count +=1
 
         run_loop_count += 1
 
