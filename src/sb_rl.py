@@ -5,6 +5,7 @@ import numpy as np
 import os
 import onnx
 import onnxruntime as ort
+import serial
 import stable_baselines3
 import stable_baselines3.common
 import stable_baselines3.common.base_class
@@ -359,6 +360,128 @@ def test_tflite_quant(ctx: dict, environment: str):
         run_loop_count += 1
 
 
+def write_to_arduino(data:str, ser: serial.Serial):
+    """
+    Write a string to the Arduino via serial.
+    """
+    if ser.isOpen():
+        ser.write(data.encode())  # Convert string to bytes and send
+        ser.write(b'\n')          # Send newline to signal end of input
+        # print(f"Sent to Arduino: {data}")
+    else:
+        print("Error: Serial port is not open.")
+
+def read_from_arduino(ser: serial.Serial) -> str:
+    """
+    Read the response from the Arduino.
+    """
+    if ser.isOpen():
+        # Read available data from Arduino
+        response = ser.readline().decode('utf-8').strip()  # Read response and decode to string
+        print(f"Arduino says: {response}")
+        return response
+    else:
+        print("Error: Serial port is not open.")
+        return None
+
+
+@click.command(name="test-tflite-arduino", help="Test a quantized tflite model on the arduino")
+@click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
+@click.pass_context
+def test_tflite_arduino(ctx: dict, environment: str):
+    """ Test a tflite model by running in MuJoCo interactively """
+    env = gym.make(environment, render_mode='human')
+
+    algorithm_name = ctx.obj['ALGORITHM_NAME']
+
+    model_file = ctx.obj['MODEL_PATH']
+    if model_file is None:
+        raise RuntimeError(f"Must provide model file")
+
+    if not os.path.isfile(model_file):
+        raise RuntimeError(f"Could not open model file: {model_file}")
+
+    logger.info(f"Starting tflite quantized test simulation")
+    logger.info(f"Algorithm: {algorithm_name}")
+    logger.info(f"Environment: {environment}")
+    logger.info(f"Model: {model_file}")
+
+    arduino_port = '/dev/tty.usbmodem158747801'  # Replace with your port
+    baud_rate = 115200
+    timeout = 1  # Set a timeout for reading from the Arduino
+
+    # Initialize serial connection
+    ser = serial.Serial(arduino_port, baud_rate, timeout=timeout)
+
+    # We never run inference on this model here, as that's done on
+    # the arduino in this command. However, we do need to load it up
+    # to extract the quantization params (assumes loaded model is the
+    # same as the one running on the arduino)
+    interpreter = tf.lite.Interpreter(model_path=model_file)
+    interpreter.allocate_tensors()
+
+    input_details = interpreter.get_input_details()
+    # there's only one input tensor
+    input_detail = input_details[0]
+    # get the quantization input params
+    input_scale, input_zero_point = input_detail['quantization']
+    logger.info("Quantization parameters")
+    logger.info(f"Input scale: {input_scale}")
+    logger.info(f"Input zero point {input_zero_point}")
+
+    output_details = interpreter.get_output_details()
+    # unique to the PPO policy, which has multiple outputs
+    # the second output is the one that includes the actions needed
+    output_detail = output_details[1]
+    output_scale, output_zero_point = output_detail['quantization']
+    logger.info(f"Output scale: {output_scale}")
+    logger.info(f"Output zero point {output_zero_point}")
+
+    run_loop_count = 0
+    obs = env.reset()[0]
+    while True:
+        # convert observation values to quantized values using parameters from the tflite
+        # quantized model
+        obs_quant = [
+            (np.round(obs_value / input_scale) + input_zero_point)
+            for obs_value in obs
+        ]
+
+        # need to make sure the quantized values are within the range of an int8, otherwise
+        # the values get wrapped and -129 becomes +127! Which is obviously bad for the
+        # robots balance
+        obs_quant = np.clip(obs_quant, a_min = -128, a_max = 127)
+
+        input_tensor = np.array([obs_quant], dtype=np.int8)
+        logger.info(input_tensor)
+
+        write_to_arduino(data=",".join(map(str, input_tensor[0].tolist())), ser=ser)
+
+        interpreter.set_tensor(input_details[0]['index'], input_tensor)
+        interpreter.invoke()
+
+        arduino_resp = read_from_arduino(ser)
+        output_data_quant = [int(s) for s in arduino_resp.split(',')]
+
+        logger.info(output_data_quant)
+
+        # convert quantized model outputs back to floats as expected by the sim
+        output_data = np.array(
+            [
+                output_scale * (output_data_quant[0].astype(np.float32) - output_zero_point),
+                output_scale * (output_data_quant[1].astype(np.float32) - output_zero_point),
+            ],
+            dtype=np.float32
+        )
+
+        obs, _, terminated, truncated, _ = env.step(output_data)
+
+        if terminated or truncated:
+            break
+
+        run_loop_count += 1
+
+
 @click.command(name="train", help="Train a model with a given environment")
 @click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
 @click.pass_context
@@ -452,6 +575,7 @@ cli.add_command(test)
 cli.add_command(test_onnx)
 cli.add_command(test_tflite)
 cli.add_command(test_tflite_quant)
+cli.add_command(test_tflite_arduino)
 cli.add_command(train)
 
 
