@@ -1,11 +1,21 @@
-# balance-robot-mujoco-rl
-Use reinforcement learning to train self balancing robot in MuJoCo environment
+# Reinforcement Learning for a Self Balancing Robot
+Code for creating a trained policy that can be used by a two wheeled self balancing robot. This includes the following steps;
+- Training a policy using reinforcement learning (Stable Baselines3 / PyTorch) in several simulation environments (MuJoCo)
+- Testing the policy within the simulation environments
+- Quantization of the trained model from float32 to int8 so the policy can be run on microcontrollers using TensorFlow Lite (TFLite/LiteRT)
+
+![MuJoCo simulation](./docs/mujoco_rl_robot.gif) ![Real robot](./docs/real_robot.gif)
 
 
+# Setup
+
+Create and activate the conda environment. This will install dependencies needed for training, testing, and converting the model.
+
+    conda env create -f conda-environment.yaml
+    conda activate robot-mujoco-rl
 
 
 # Process commands
-
 
 Convert the PyTorch model to ONNX
 
