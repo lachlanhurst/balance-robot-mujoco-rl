@@ -3,13 +3,19 @@ channels:
   - conda-forge
 dependencies:
   - python==3.11
-  - mujoco-python<3
-  - pyside6==6.6.0
-  - scipy==1.14.1
-  - stable-baselines3==2.3.2
-  - gymnasium==0.29.1
-  - tensorboard==2.17.1
+  - pytorch==2.4.0
+  - mujoco-python==3.2.0
   - imageio==2.35.1
   - moviepy==1.0.3
-  - onnx==1.15.0
+  - scipy==1.14.1
+  - tensorboard==2.17.1
+  - torchvision==0.19.1
+  - onnx==1.16.2
+  - onnxruntime==1.18.1
+  - tensorflow==2.17.0
+  - click==8.1.7
   - pip
+  - pip:
+    - gymnasium==1.0.0a2
+    - git+https://github.com/pseudo-rnd-thoughts/stable-baselines3.git@gymnasium-1.0.0a1
+    - pyserial==3.5
