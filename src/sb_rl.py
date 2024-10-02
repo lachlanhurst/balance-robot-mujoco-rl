@@ -290,15 +290,31 @@ def test_tflite_quant(ctx: dict, environment: str):
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
+    # there's only one input tensor
+    input_detail = input_details[0]
+    # get the quantization input params
+    input_scale, input_zero_point = input_detail['quantization']
+    logger.info("Quantization parameters")
+    logger.info(f"Input scale: {input_scale}")
+    logger.info(f"Input zero point {input_zero_point}")
+
     output_details = interpreter.get_output_details()
+    # unique to the PPO policy, which has multiple outputs
+    # the second output is the one that includes the actions needed
+    output_detail = output_details[1]
+    output_scale, output_zero_point = output_detail['quantization']
+    logger.info(f"Output scale: {output_scale}")
+    logger.info(f"Output zero point {output_zero_point}")
 
     run_loop_count = 0
     obs = env.reset()[0]
     while True:
         # convert observation values to quantized values using parameters from the tflite
         # quantized model
-        # TODO: this needs to be changed each time the quantization is done
-        obs_quant = [(obs_value / 0.026083452627062798 - 67) for obs_value in obs]
+        obs_quant = [
+            (np.round(obs_value / input_scale) + input_zero_point)
+            for obs_value in obs
+        ]
 
         # need to make sure the quantized values are within the range of an int8, otherwise
         # the values get wrapped and -129 becomes +127! Which is obviously bad for the
@@ -310,16 +326,15 @@ def test_tflite_quant(ctx: dict, environment: str):
 
         interpreter.set_tensor(input_details[0]['index'], input_tensor)
         interpreter.invoke()
-        output_data_quant = interpreter.get_tensor(output_details[0]['index'])[0]
+        output_data_quant = interpreter.get_tensor(output_details[1]['index'])[0]
 
-        logger.info(output_data_quant)
+        logger.info("             " + str(output_data_quant))
 
         # convert quantized model outputs back to floats as expected by the sim
-        # TODO: this needs to be changed each time the quantization is done
         output_data = np.array(
             [
-                output_data_quant[0] * 0.0078125,
-                output_data_quant[1] * 0.0078125,
+                output_scale * (output_data_quant[0].astype(np.float32) - output_zero_point),
+                output_scale * (output_data_quant[1].astype(np.float32) - output_zero_point),
             ],
             dtype=np.float32
         )
