@@ -43,7 +43,7 @@ def algorithm_factory(algorithm_name: str, env: gym.Env) -> BaseAlgorithm:
         )
         action_noise = NormalActionNoise(
             mean=np.zeros(2),
-            sigma=0.01 * np.ones(2)
+            sigma=0.1 * np.ones(2)
         )
         model = stable_baselines3.DDPG(
             "MlpPolicy",
@@ -53,6 +53,15 @@ def algorithm_factory(algorithm_name: str, env: gym.Env) -> BaseAlgorithm:
             tensorboard_log=LOG_DIR,
             policy_kwargs=policy_kwargs,
             action_noise=action_noise
+        )
+        return model
+    elif algorithm_name == "PPO":
+        model = stable_baselines3.PPO(
+            "MlpPolicy",
+            env=env,
+            verbose=1,
+            device='cpu',
+            tensorboard_log=LOG_DIR
         )
         return model
     else:
