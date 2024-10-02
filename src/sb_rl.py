@@ -219,8 +219,9 @@ def test_onnx(ctx: dict, environment: str, show_io: bool):
 @click.command(name="test-tflite", help="Test a tflite model")
 @click.option('-e', '--environment', required=True, type=str, help="id of Gymnasium environment (eg; Env01-v1)")
 @click.option('--show-io', is_flag=True, default=False, help="log model inputs and outputs")
+@click.option('--show-i', is_flag=True, default=False, help="log model inputs to std out in Python array syntax")
 @click.pass_context
-def test_tflite(ctx: dict, environment: str, show_io: bool):
+def test_tflite(ctx: dict, environment: str, show_io: bool, show_i: bool):
     """ Test a tflite model by running in MuJoCo interactively """
     env = gym.make(environment, render_mode='human')
 
@@ -256,6 +257,8 @@ def test_tflite(ctx: dict, environment: str, show_io: bool):
 
         if show_io and run_loop_count % 30 == 0:
             logger.info(str(list(obs) + list(output_data)))
+        if show_i and run_loop_count % 30 == 0:
+            logger.info(str(list(obs)) + ",")
 
         obs, _, terminated, truncated, _ = env.step(output_data)
 
