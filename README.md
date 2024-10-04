@@ -15,6 +15,57 @@ Create and activate the conda environment. This will install dependencies needed
     conda activate robot-mujoco-rl
 
 
+# General operation
+
+The training, testing, and conversion process is for the most part is performed by a command line application implemented in [`sb_rl.py`](./src/sb_rl.py).
+
+Command line usage instructions can be found by running the following command.
+
+    python sb_rl.py --help
+
+Which will display
+
+    Usage: sb_rl.py [OPTIONS] COMMAND [ARGS]...
+
+    Options:
+    -a, --algorithm TEXT  Stable Baseline3 algorithm (eg; A2C, DDPG, DQN, PPO,
+                            SAC, TD3)  [required]
+    -m, --model PATH      Path to model file
+    --help                Show this message and exit.
+
+    Commands:
+    convert              Convert a PyTorch model to ONNX format
+    test                 Test the current model
+    test-onnx            Test an ONNX model
+    test-tflite          Test a tflite model
+    test-tflite-arduino  Test a quantized tflite model on the arduino
+    test-tflite-quant    Test a quantized tflite model
+    train                Train a model with a given environment
+
+Command help can be shown by including the command name, for example
+
+    python sb_rl.py -a PPO train --help
+
+Example command lines are included in the following sections.
+
+
+# Training process
+
+The following commands will train a policy in multiple environments. These commands all use the PPO algorithm, which is recommended.
+
+Create and train a policy to balance using Env01. Use tensorboard to monitor training progress and stop when policy balances consistently.
+
+    python sb_rl.py -a PPO train -e Env01-v2
+
+Start with the pre-trained policy from the previous command, and perform additional training with Env03 to improve balancing robustness. As per previous step, stop when the robot maintains balance consistently.
+
+    python sb_rl.py -a PPO -m ./models/Env01-v2_PPO/best_model.zip train -e Env03-v2
+
+Review performance of the trained policy by testing interactively in the environment. This will launch a MuJoCo simulation similar to that shown in the gif above.
+
+        python sb_rl.py -a PPO -m ./models/Env03-v2_PPO/best_model.zip test -e Env03-v2
+
+
 # Process commands
 
 Convert the PyTorch model to ONNX
