@@ -63,7 +63,7 @@ Start with the pre-trained policy from the previous command, and perform additio
 
 Review performance of the trained policy by testing interactively in the environment. This will launch a MuJoCo simulation similar to that shown in the gif above.
 
-        python sb_rl.py -a PPO -m ./models/Env03-v2_PPO/best_model.zip test -e Env03-v2
+    python sb_rl.py -a PPO -m ./models/Env03-v2_PPO/best_model.zip test -e Env03-v2
 
 
 # Conversion from PyTorch Float32 policy to TFLite (LiteRT) int8 policy
@@ -131,14 +131,14 @@ Nothing special is required. The model training was performed on a 2019 MacBook 
 
 ## Environment descriptions
 
-# Env01
+### Env01
 Env01-v1 : Simple environment, used to teach robot to balance on two wheels.
 Env01-v2 : Same as v1, but adds noise to pitch and pitch dot observations. Use this for training instead of v1.
 
-# Env02
+### Env02
 Env02-v1 : Same as Env01, but adds randomised friction to contact between wheel and ground.
 
-# Env03
+### Env03
 Env03-v1 : Blocks are thrown at robot from any random direction. While fun to watch, is generally too chaotic for good training performance.
 Env03-v1-fail: big "FAIL" block is dropped on robot when it falls over. Don't use for training, created for comedic value.
 Env03-v2 : Blocks come from either front or back (random), but are thrown from the same side consistently over an episode. This is case that caused the most problems in v1, isolating this behaviour in v2 resulted in much better training.
