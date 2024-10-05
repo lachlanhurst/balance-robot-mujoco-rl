@@ -133,6 +133,7 @@ Nothing special is required. The model training was performed on a 2019 MacBook 
 
 ### Env01
 Env01-v1 : Simple environment, used to teach robot to balance on two wheels.
+
 Env01-v2 : Same as v1, but adds noise to pitch and pitch dot observations. Use this for training instead of v1.
 
 ### Env02
@@ -140,7 +141,9 @@ Env02-v1 : Same as Env01, but adds randomised friction to contact between wheel 
 
 ### Env03
 Env03-v1 : Blocks are thrown at robot from any random direction. While fun to watch, is generally too chaotic for good training performance.
+
 Env03-v1-fail: big "FAIL" block is dropped on robot when it falls over. Don't use for training, created for comedic value.
+
 Env03-v2 : Blocks come from either front or back (random), but are thrown from the same side consistently over an episode. This is case that caused the most problems in v1, isolating this behaviour in v2 resulted in much better training.
 
 
