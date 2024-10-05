@@ -2,14 +2,14 @@
 Code for creating a trained policy that can be used by a two wheeled self balancing robot. This includes the following steps;
 - Training a policy using reinforcement learning (Stable Baselines3 / PyTorch) in several simulation environments (MuJoCo)
 - Testing the policy within the simulation environments
-- Quantization of the trained model from float32 to int8 so the policy can be run on microcontrollers using TensorFlow Lite (TFLite/LiteRT)
+- Quantization of the trained policy from float32 to int8 so the policy can be run on microcontrollers using TensorFlow Lite (TFLite/LiteRT)
 
 ![MuJoCo simulation](./docs/mujoco_rl_robot.gif) ![Real robot](./docs/real_robot.gif)
 
 
 # Setup
 
-Create and activate the conda environment. This will install dependencies needed for training, testing, and converting the model.
+Create and activate the conda environment. This will install dependencies needed for training, testing, and converting the policy.
 
     conda env create -f conda-environment.yaml
     conda activate robot-mujoco-rl
@@ -66,15 +66,25 @@ Review performance of the trained policy by testing interactively in the environ
         python sb_rl.py -a PPO -m ./models/Env03-v2_PPO/best_model.zip test -e Env03-v2
 
 
-# Process commands
+# Conversion from PyTorch Float32 policy to TFLite (LiteRT) int8 policy
+The quantization process is necessary to reduce the size and computational effort required for the policy so that it may be run on microcontrollers. In this case the policy was successfully converted and run on a Teensy 4.1 and inference can be run at over 200Hz. 
 
-Convert the PyTorch model to ONNX
+The conversion process is as follows:
+1. Convert PyTorch float32 to ONNX float32 - using PyTorch
+2. Convert ONNX float32 to TensorFlow float32 - using onnx2tf
+3. Convert TensorFlow float32 to quantized TFLite int8 - using onnx2tf
 
-    python sb_rl.py -a SAC -m ../backup/best_model.zip  convert -e Env01-v1
+The commands to perform each of these steps are as follow. It assumes the commands in the previous section were used to train and test the model.
 
-Test the ONNX model. Confirm the robot still balances as well as the PyTorch model.
+Convert the PyTorch policy to ONNX. This will produce a `best_model.onnx` file in the same folder as the input policy.
 
-    python sb_rl.py -a SAC -m ../backup/best_model.onnx test-onnx -e Env01-v1
+    python sb_rl.py -a PPO -m ./models/Env03-v2_PPO/best_model.zip convert -e Env03-v2
+
+Test the ONNX policy. Confirm the robot still balances as well as the PyTorch policy.
+
+    python sb_rl.py -a SAC -m ./models/Env03-v2_PPO/best_model.onnx test-onnx -e Env03-v2
+
+The next few steps require the use of docker.
 
 Start the onnx2tf docker contain, will open shell
 
@@ -83,33 +93,27 @@ Start the onnx2tf docker contain, will open shell
         -w /workdir \
         docker.io/pinto0309/onnx2tf:1.25.12
 
-In the docker shell convert ONNX model to tflite (is this correct???)
+In the docker shell convert ONNX policy to tflite (is this correct???)
 
-    onnx2tf -i ./balance-robot-mujoco-rl/backup/best_model.onnx -b 1 -osd
+    onnx2tf -i /workdir/models/Env03-v2_PPO/best_model.onnx -b 1 -osd
 
-Exit docker container
-
-Test the tflite model. Confirm the robot still balances as well as the PyTorch model.
-
-    python sb_rl.py -a SAC -m ../../saved_model/best_model_float32.tflite test-tflite -e Env01-v1
-
-Copy/paste output of following command into `quantize_tflite.py`
-
-    python sb_rl.py -a SAC -m ../backup/best_model.zip test -e Env01-v1 --show-i
-
-Get the input name from the outputs of the following command `inputs['input'] tensor_info:` -> `input`. Update the name in the `representative_dataset` function included in `quantize_tflite.py`
+Get the input name from the outputs of the following command `inputs['input'] tensor_info:` -> `input`. Update the name in the `representative_dataset` function included in `quantize_tflite.py` (in this repos source code, it will likely be the same as that already included)
 
     saved_model_cli show --dir saved_model/ --all
 
+Exit docker container (typing `exit` in the bash shell)
+
+Test the tflite policy. Confirm the robot still balances as well as the PyTorch policy.
+
+    python sb_rl.py -a PPO -m ./saved_model/best_model_float32.tflite test-tflite -e Env03-v2
+
 Transform the tflite model into an int8 quantized tflite model
 
-    python balance-robot-mujoco-rl/src/quantize_tflite.py
-
-Open int8_model.tflite in Neuron, get quantization params and update `test_tflite_quant` function in sb_rl.py
+    python ./src/quantize_tflite.py
 
 Test the quantized model
 
-    python sb_rl.py -a SAC -m ../../saved_model/int8_model.tflite test-tflite-quant -e Env01-v1
+    python sb_rl.py -a PPO -m ./saved_model/int8_model.tflite test-tflite-quant -e Env03-v2
 
 Convert quantized model into c array
 
@@ -119,6 +123,11 @@ The c array can then be included in the microcontroller code along with a suitab
 
 
 # Training notes
+
+## Hardware
+
+Nothing special is required. The model training was performed on a 2019 MacBook Pro over several hours.
+
 
 ## Environment descriptions
 
