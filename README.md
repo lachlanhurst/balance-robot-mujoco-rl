@@ -67,7 +67,7 @@ Review performance of the trained policy by testing interactively in the environ
 
 
 # Conversion from PyTorch Float32 policy to TFLite (LiteRT) int8 policy
-The quantization process is necessary to reduce the size and computational effort required for the policy so that it may be run on microcontrollers. In this case the policy was successfully converted and run on a Teensy 4.1 and inference can be run at over 200Hz. 
+The quantization process is necessary to reduce the size and computational effort required for the policy so that it may be run on microcontrollers. In this case the policy was successfully converted and [run on a Teensy 4.1 and inference can be done at over 200Hz](https://youtube.com/shorts/5YxqjbKHSzw?si=UK651Mg2pxSLTvXR). 
 
 The conversion process is as follows:
 1. Convert PyTorch float32 to ONNX float32 - using PyTorch
