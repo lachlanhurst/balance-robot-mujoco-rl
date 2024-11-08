@@ -20,8 +20,8 @@
   </worldbody>
 
   <actuator>
-    <velocity name="motor_l_wheel" joint="torso_l_wheel" ctrllimited="true" ctrlrange="-78.54 78.54" kv="0.9" forcelimited="true" forcerange="-0.65 0.65"/>
-    <velocity name="motor_r_wheel" joint="torso_r_wheel" ctrllimited="true" ctrlrange="-78.54 78.54" kv="0.9" forcelimited="true" forcerange="-0.65 0.65"/>
+    <velocity name="motor_l_wheel" joint="torso_l_wheel" ctrllimited="true" ctrlrange="-78.54 78.54" kv="4.0" forcelimited="true" forcerange="-0.65 0.65"/>
+    <velocity name="motor_r_wheel" joint="torso_r_wheel" ctrllimited="true" ctrlrange="-78.54 78.54" kv="4.0" forcelimited="true" forcerange="-0.65 0.65"/>
   </actuator>
 
 </mujoco>
