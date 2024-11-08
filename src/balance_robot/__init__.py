@@ -43,3 +43,10 @@ register(
     max_episode_steps=1200,
     reward_threshold=6000,
 )
+
+register(
+    id="Cal01",
+    entry_point="balance_robot.envs.cal01:Cal01",
+    max_episode_steps=6000,
+    reward_threshold=6000,
+)
