@@ -55,6 +55,9 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
+        self.last_time = None
+        self.last_pitch = None
+
     def _set_action_space(self):
         # called by init in parent class
         # normalize the action space to better support quantization later
@@ -99,6 +102,22 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         angular = self.data.joint('robot_body_joint').qvel[-3:]
         # print(angular)
         return angular[0]
+
+    def get_pitch_dot_alt(self) -> float:
+        # alternate method of calculating pitch dot, this is how the real
+        # robot does it
+        pitch = self.get_pitch()
+        ts = self.data.time
+
+        pitch_dot = 0
+        if self.last_time is not None and self.last_pitch is not None:
+            dt = ts - self.last_time
+            pitch_dot = (pitch - self.last_pitch) / dt
+        
+        self.last_time = ts
+        self.last_pitch = pitch
+
+        return pitch_dot
 
     def get_wheel_velocities(self) -> float:
         vel_m_0 = self.data.joint('torso_l_wheel').qvel[0]
@@ -154,7 +173,7 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
 
     def _get_obs(self):
         pitch = self.get_pitch()
-        pitch_dot = self.get_pitch_dot()
+        pitch_dot = self.get_pitch_dot_alt()
         yaw_dot = self.get_yaw_dot()
         wheel_vel_l, wheel_vel_r = self.get_wheel_velocities()
 
