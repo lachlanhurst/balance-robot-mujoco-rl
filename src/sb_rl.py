@@ -531,7 +531,7 @@ def train(ctx: dict, environment: str):
 
     eval_callback = EvalCallback(
         env,
-        eval_freq=10000,
+        eval_freq=20000,
         callback_on_new_best=callback_on_best,
         callback_after_eval=stop_train_callback,
         verbose=1,
