@@ -453,28 +453,31 @@ def test_tflite_arduino(ctx: dict, environment: str):
         obs_quant = np.clip(obs_quant, a_min = -128, a_max = 127)
 
         input_tensor = np.array([obs_quant], dtype=np.int8)
-        logger.info(input_tensor)
+        # logger.info(input_tensor)
 
-        write_to_arduino(data=",".join(map(str, input_tensor[0].tolist())), ser=ser)
+        # write_to_arduino(data=",".join(map(str, input_tensor[0].tolist())), ser=ser)
+        logger.info(obs)
+        write_to_arduino(data=",".join(map(str, obs)), ser=ser)
 
         interpreter.set_tensor(input_details[0]['index'], input_tensor)
         interpreter.invoke()
 
         arduino_resp = read_from_arduino(ser)
-        output_data_quant = [int(s) for s in arduino_resp.split(',')]
+        # output_data_quant = [int(s) for s in arduino_resp.split(',')]
+        output_data_quant = [float(s) for s in arduino_resp.split(',')]
 
         logger.info(output_data_quant)
 
         # convert quantized model outputs back to floats as expected by the sim
-        output_data = np.array(
-            [
-                output_scale * (output_data_quant[0].astype(np.float32) - output_zero_point),
-                output_scale * (output_data_quant[1].astype(np.float32) - output_zero_point),
-            ],
-            dtype=np.float32
-        )
+        # output_data = np.array(
+        #     [
+        #         output_scale * (output_data_quant[0].astype(np.float32) - output_zero_point),
+        #         output_scale * (output_data_quant[1].astype(np.float32) - output_zero_point),
+        #     ],
+        #     dtype=np.float32
+        # )
 
-        obs, _, terminated, truncated, _ = env.step(output_data)
+        obs, _, terminated, truncated, _ = env.step(output_data_quant)
 
         if terminated or truncated:
             break
