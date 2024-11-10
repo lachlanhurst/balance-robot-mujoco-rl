@@ -20,6 +20,7 @@ PITCH_MAX = 0.25
 PITCH_DOT_MAX = 1
 WHEEL_SPEED_MAX = 170.0
 WHEEL_SPEED_DELTA_MAX = 4.0
+YAW_MAX = 45.0
 
 """
 Most of the Env code will be common across different scenarios as the robot
@@ -38,9 +39,17 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
     def __init__(self, env_filename: str, **kwargs):
         utils.EzPickle.__init__(self, **kwargs)
 
+
+        # order of observation space
+        # pitch
+        # pitch dot
+        # left wheel speed (actual)
+        # right wheel speed (actual)
+        # difference in target wheel speed to actual wheel speed
+        # difference in target yaw (yaw being difference in LHS vs RHS wheel speeds) to actual yaw
         observation_space = Box(
-            np.array([-math.pi * 2, -math.pi * 2,  -1.0, -1.0]),
-            np.array([math.pi * 2, math.pi * 2, 1.0, 1.0]),
+            np.array([-math.pi * 2, -math.pi * 2,  -1.0, -1.0, -1.0, -1.0]),
+            np.array([math.pi * 2, math.pi * 2, 1.0, 1.0, 1.0, 1.0]),
             dtype=np.float32
         )
 
@@ -55,12 +64,19 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
+        self.loop_count = 0
         self.last_time = None
         self.last_pitch = None
+
+        self.target_wheel_speed = 0.0
+        self.target_yaw = 0.0
 
     def _set_action_space(self):
         # called by init in parent class
         # normalize the action space to better support quantization later
+
+        # order of action space
+        # left wheel speed, right wheel speed
         self.action_space = Box(
             np.array([-1.0, -1.0]),
             np.array([1.0, 1.0]),
@@ -127,6 +143,16 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         # direction as it's rotated 180deg from the other
         return (vel_m_0, vel_m_1)
 
+    def get_wheel_yaw(self) -> float:
+        vel_l, vel_r = self.get_wheel_velocities()
+        wheel_yaw = vel_l - (-1 * vel_r)
+        return wheel_yaw
+
+    def get_wheel_speed(self) -> float:
+        vel_l, vel_r = self.get_wheel_velocities()
+        wheel_speed = (vel_l + (-1 * vel_r)) / 2
+        return wheel_speed
+
     def get_yaw(self) -> float:
         quat = self.data.body("robot_body").xquat
         if quat[0] == 0:
@@ -172,6 +198,8 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         return reward
 
     def _get_obs(self):
+        self.loop_count += 1
+
         pitch = self.get_pitch()
         pitch_dot = self.get_pitch_dot_alt()
         yaw_dot = self.get_yaw_dot()
@@ -181,13 +209,17 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         pitch_dot_normalized = pitch_dot / PITCH_DOT_MAX
         wheel_vel_l_normalized = wheel_vel_l / WHEEL_SPEED_MAX
         wheel_vel_r_normalized = wheel_vel_r / WHEEL_SPEED_MAX
+        delta_wheel_speed_normalized = (self.target_wheel_speed - self.get_wheel_speed()) / WHEEL_SPEED_MAX * 2
+        delta_wheel_yaw_normalized = (self.target_yaw - self.get_wheel_yaw()) / YAW_MAX
 
         return np.array(
             [
                 pitch_normalized,
                 pitch_dot_normalized,
                 wheel_vel_l_normalized,
-                wheel_vel_r_normalized
+                wheel_vel_r_normalized,
+                delta_wheel_speed_normalized,
+                delta_wheel_yaw_normalized
             ],
             dtype=np.float32
         ).ravel()
