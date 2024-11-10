@@ -102,6 +102,26 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
                 text1="Pitch",
                 text2="{:.2f}".format(self.get_pitch() * 180 / math.pi)
             )
+            self.mujoco_renderer.viewer.add_overlay(
+                gridpos=mujoco.mjtGridPos.mjGRID_TOPRIGHT,
+                text1="Speed",
+                text2="{:.2f}".format(self.get_wheel_speed())
+            )
+            self.mujoco_renderer.viewer.add_overlay(
+                gridpos=mujoco.mjtGridPos.mjGRID_TOPRIGHT,
+                text1="Target",
+                text2="{:.2f}".format(self.target_wheel_speed)
+            )
+            self.mujoco_renderer.viewer.add_overlay(
+                gridpos=mujoco.mjtGridPos.mjGRID_TOPRIGHT,
+                text1="Yaw",
+                text2="{:.2f}".format(self.get_wheel_yaw())
+            )
+            self.mujoco_renderer.viewer.add_overlay(
+                gridpos=mujoco.mjtGridPos.mjGRID_TOPRIGHT,
+                text1="Target Yaw",
+                text2="{:.2f}".format(self.target_yaw)
+            )
         return super().render()
 
     def get_pitch(self) -> float:
