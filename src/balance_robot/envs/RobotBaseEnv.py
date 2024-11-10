@@ -79,14 +79,14 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
             v.cam.distance = 1.25
 
     def render(self):
-        super().render()
-        if self.mujoco_renderer.viewer is not None:
+        if self.mujoco_renderer.viewer is not None and self.render_mode == 'human':
             # in this case it's a Gymnasium Mujoco Viewer
             self.mujoco_renderer.viewer.add_overlay(
                 gridpos=mujoco.mjtGridPos.mjGRID_TOPRIGHT,
                 text1="Pitch",
                 text2="{:.2f}".format(self.get_pitch() * 180 / math.pi)
             )
+        return super().render()
 
     def get_pitch(self) -> float:
         quat = self.data.body("robot_body").xquat
