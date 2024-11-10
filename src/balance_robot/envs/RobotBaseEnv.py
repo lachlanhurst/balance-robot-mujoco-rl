@@ -148,8 +148,9 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
         pitch_dot = 0
         if self.last_time is not None and self.last_pitch is not None:
             dt = ts - self.last_time
-            pitch_dot = (pitch - self.last_pitch) / dt
-        
+            if dt > 0.0:
+                pitch_dot = (pitch - self.last_pitch) / dt
+
         self.last_time = ts
         self.last_pitch = pitch
 
