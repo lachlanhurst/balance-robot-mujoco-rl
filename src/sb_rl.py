@@ -15,7 +15,11 @@ import torch
 from pathlib import Path
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import (
-    StopTrainingOnNoModelImprovement, StopTrainingOnRewardThreshold, EvalCallback
+    StopTrainingOnNoModelImprovement,
+    StopTrainingOnRewardThreshold,
+    EvalCallback,
+    CheckpointCallback,
+    CallbackList
 )
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import NormalActionNoise
@@ -538,10 +542,17 @@ def train(ctx: dict, environment: str):
         best_model_save_path=os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}"),
     )
 
+    checkpoint_callback = CheckpointCallback(
+        save_freq=40000,
+        verbose=2,
+        save_path=os.path.join(MODEL_DIR, f"{environment}_{algorithm_name}"),
+        name_prefix=f"{environment}_{algorithm_name}_cp_"
+    )
+
     model.learn(
         total_timesteps=int(1e10),
         tb_log_name=f"{environment}_{algorithm_name}",
-        callback=eval_callback
+        callback=CallbackList([checkpoint_callback, eval_callback])
     )
 
 
