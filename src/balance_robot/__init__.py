@@ -17,6 +17,13 @@ register(
 )
 
 register(
+    id="Env01-v3",
+    entry_point="balance_robot.envs.env01_v3:Env01_v3",
+    max_episode_steps=6000,
+    reward_threshold=6000,
+)
+
+register(
     id="Env02-v1",
     entry_point="balance_robot.envs.env02_v1:Env02",
     max_episode_steps=6000,
