@@ -155,7 +155,7 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
 
         return pitch_dot
 
-    def get_wheel_velocities(self) -> float:
+    def get_wheel_velocities(self) -> tuple[float, float]:
         vel_m_0 = self.data.joint('torso_l_wheel').qvel[0]
         vel_m_1 = self.data.joint('torso_r_wheel').qvel[0]
 
