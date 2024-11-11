@@ -132,7 +132,18 @@ Nothing special is required. The model training was performed on a 2019 MacBook 
 ## Environment descriptions
 
 ### Env01
-Env01-v1 : Simple environment, used to teach robot to balance on two wheels.
+Simple env, no hazards, flat ground
+
+#### v1 : Balance and nothing else
+- Don't use this, use v3.
+- The issue is while this will train the robot to balance, it will make it harder for the robot to learn how to move forward and backward later on.
+
+#### v2 : Balance with noise
+- Same as v1, but adds noise to pitch and pitch dot observations.
+
+#### v3 : Balance for a short time, then move
+- Balances for 0.5 seconds, then moves forward and backward at semi-random speeds
+- Use this for training a fresh model
 
 Env01-v2 : Same as v1, but adds noise to pitch and pitch dot observations. Use this for training instead of v1.
 
