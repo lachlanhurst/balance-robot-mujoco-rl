@@ -19,9 +19,13 @@ class Env01_v3(Env01):
         self.delay_target_yaw = 0.0
 
     def step(self, a):
-        # if self.data.time > 4.5:
-        #     self.target_wheel_speed = 0.0
-        if self.data.time > 0.5:
+        if self.data.time > 5.5:
+            self.target_wheel_speed = 3.0 * self.delay_target_speed
+        elif self.data.time > 4.5:
+            self.target_wheel_speed = 2.0 * self.delay_target_speed
+        elif self.data.time > 3.0:
+            self.target_wheel_speed = -1.0 * self.delay_target_speed
+        elif self.data.time > 0.0:
             self.target_wheel_speed = self.delay_target_speed
 
         return Env01.step(self, a)
