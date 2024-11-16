@@ -228,10 +228,10 @@ class RobotBaseEnv(MujocoEnv, utils.EzPickle):
 
         pitch_normalized = pitch / PITCH_MAX
         pitch_dot_normalized = pitch_dot / PITCH_DOT_MAX
-        wheel_vel_l_normalized = wheel_vel_l / WHEEL_SPEED_MAX
-        wheel_vel_r_normalized = wheel_vel_r / WHEEL_SPEED_MAX
-        delta_wheel_speed_normalized = (self.target_wheel_speed - self.get_wheel_speed()) / WHEEL_SPEED_MAX * 2
-        delta_wheel_yaw_normalized = (self.target_yaw - self.get_wheel_yaw()) / YAW_MAX
+        wheel_vel_l_normalized = wheel_vel_l / WHEEL_SPEED_MAX * 4
+        wheel_vel_r_normalized = wheel_vel_r / WHEEL_SPEED_MAX * 4
+        delta_wheel_speed_normalized = (self.target_wheel_speed - self.get_wheel_speed()) / WHEEL_SPEED_MAX * 4
+        delta_wheel_yaw_normalized = (self.target_yaw - self.get_wheel_yaw()) / YAW_MAX * 3
 
         return np.array(
             [
