@@ -410,7 +410,7 @@ def test_tflite_arduino(ctx: dict, environment: str):
     logger.info(f"Environment: {environment}")
     logger.info(f"Model: {model_file}")
 
-    arduino_port = '/dev/tty.usbmodem158747801'  # Replace with your port
+    arduino_port = '/dev/cu.usbmodem158747801'  # Replace with your port
     baud_rate = 115200
     timeout = 1  # Set a timeout for reading from the Arduino
 
