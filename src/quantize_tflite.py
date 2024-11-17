@@ -7,9 +7,9 @@ import tensorflow as tf
 # we use the model in unexpected ways may get values outside the quantized
 # range.
 dataset = [
-  [-3.14 / 2, -6.28, -1, -1],
-  [0, 0, 0, 0],
-  [3.14 / 2, 6.28, 1, 1],
+  [-3.14 / 2, -6.28, -4, -4, -4, -4],
+  [0, 0, 0, 0, 0, 0],
+  [3.14 / 2, 6.28, 4, 4, 4, 4],
 ]
 
 def representative_dataset():
