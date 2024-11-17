@@ -18,6 +18,12 @@ class Env01_v3(Env01):
         self.delay_target_speed = 0.0
         self.delay_target_yaw = 0.0
 
+        self.pitch_offset = 0.0
+
+    def get_pitch(self) -> float:
+        p = super().get_pitch()
+        return p + self.pitch_offset
+
     def step(self, a):
         if self.data.time > 5.5:
             self.target_wheel_speed = 3.0 * self.delay_target_speed
@@ -42,6 +48,9 @@ class Env01_v3(Env01):
         else:
             self.delay_target_speed -= 10
 
+        # 2 degrees +/-
+        self.pitch_offset = self.np_random.uniform(low=-0.0349066, high=0.0349066)
+        print(f"pitch offset: {self.pitch_offset * 180 / math.pi}")
         return Env01.reset_model(self)
 
     def _get_reward(self):
