@@ -57,3 +57,10 @@ register(
     max_episode_steps=6000,
     reward_threshold=6000,
 )
+
+register(
+    id="EnvMove05-v1",
+    entry_point="balance_robot.envs.envMove05_v1:EnvMove05",
+    max_episode_steps=700,
+    reward_threshold=900,
+)
