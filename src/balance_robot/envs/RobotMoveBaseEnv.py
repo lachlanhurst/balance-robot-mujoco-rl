@@ -68,6 +68,16 @@ class RobotMoveBaseEnv(MujocoEnv, utils.EzPickle):
         self.target_wheel_speed = 0.0
         self.target_yaw = 0.0
 
+        # setup the lidar ray directions, robot location coordinate system
+        middle_ray_direction = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        rotation_axis = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+        angles =  np.arange(-50, 50.1, 14.285) * (math.pi / 180)
+        self.ray_directions = []
+        for angle in angles:
+            rotation = Rotation.from_rotvec(angle * rotation_axis)
+            rotated_vector = rotation.apply(middle_ray_direction)
+            self.ray_directions.append(rotated_vector)
+
         # load the tflite model and setup inputs/outputs
         p = pathlib.Path(__file__).parent
         p = p / 'RobotMovePolicy.tflite'
@@ -199,7 +209,60 @@ class RobotMoveBaseEnv(MujocoEnv, utils.EzPickle):
         self.data.actuator('motor_l_wheel').ctrl = [vel_l]
         self.data.actuator('motor_r_wheel').ctrl = [vel_r]
 
+    def _correct_ray_dist_for_pitch(self, dist: float, hit_geom_id: int):
+        # accounts for lidar hitting floor, and corrects distance for pitch
+        # angle
+        if dist > 0.3:
+            # the real lidar has a range of 0.3m
+            return 0.0, -1
 
+        # * -1 because sim has pitch opposite to real robot
+        pitch = -self.get_pitch()
+        wheel_radius = 0.034
+        height = 0.110
+        floor_distance = wheel_radius / math.sin(pitch) + height / math.tan(pitch) - 0.010
+
+        if dist >= floor_distance and floor_distance > 0:
+            return 0.0, -1
+        else:
+            dist = dist * math.cos(pitch)
+            return dist, hit_geom_id
+
+    def get_ray_hit_and_dist(self):
+        lidar_pos = self.data.body("front_indicator").xpos
+        lidar_pos = np.array(lidar_pos, dtype=np.float64)
+        geom_id = self.data.body("front_indicator").id
+
+        rotation_matrix = self.data.body("front_indicator").xmat.reshape(3, 3)
+        world_ray_directions = [np.dot(rotation_matrix, rd) for rd in self.ray_directions]
+        world_ray_directions = np.array(world_ray_directions, np.float64)
+
+        hit_geom_ids = np.zeros(8, dtype=np.int32)
+        hit_geom_dists = np.zeros(8, dtype=np.float64)
+        mujoco.mj_multiRay(
+            m=self.model,
+            d=self.data,
+            pnt=lidar_pos,
+            vec=world_ray_directions.flatten(),
+            geomgroup=None,
+            flg_static=1,
+            bodyexclude=geom_id,
+            geomid=hit_geom_ids,
+            dist=hit_geom_dists,
+            nray=8,
+            cutoff=mujoco.mjMAXVAL
+        )
+
+        res_distances = []
+        res_geom_ids = []
+        for i in range(0, len(hit_geom_ids)):
+            d = hit_geom_dists[i]
+            g = hit_geom_ids[i]
+            c_dist, c_geom_id = self._correct_ray_dist_for_pitch(dist=d,hit_geom_id=g)
+            res_distances.append(c_dist)
+            res_geom_ids.append(c_geom_id)
+
+        return res_distances, res_geom_ids
 
     def get_pitch(self) -> float:
         quat = self.data.body("robot_body").xquat

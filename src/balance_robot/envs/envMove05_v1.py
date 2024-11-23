@@ -16,7 +16,7 @@ class EnvMove05(RobotMoveBaseEnv):
     def step(self, a):
         reward = self._get_reward()
 
-        self._step_wheel_speeds(5, 0)
+        self._step_wheel_speeds(15, 0)
 
 
         mujoco.mj_step(self.model, self.data, nstep=self.frame_skip)
@@ -25,26 +25,54 @@ class EnvMove05(RobotMoveBaseEnv):
 
         self._update_camera_follow()
 
-        lidar_pos = self.data.body("front_indicator").xpos
-        lidar_pos = np.array(lidar_pos, dtype=np.float64)
-        geom_id = self.data.body("front_indicator").id
+        self.get_ray_hit_and_dist()
 
-        ray_direction = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        # lidar_pos = self.data.body("front_indicator").xpos
+        # lidar_pos = np.array(lidar_pos, dtype=np.float64)
+        # geom_id = self.data.body("front_indicator").id
 
+        # ray_direction = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        # rotation_axis = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+        # angles =  np.arange(-50, 50.1, 14.285) * (math.pi / 180)
+        # ray_directions = []
+        # for angle in angles:
+        #     rotation = Rotation.from_rotvec(angle * rotation_axis)
+        #     rotated_vector = rotation.apply(ray_direction)
+        #     ray_directions.append(rotated_vector)
+        # rotation_matrix = self.data.body("front_indicator").xmat.reshape(3, 3)
+        # world_ray_directions = [np.dot(rotation_matrix, rd) for rd in ray_directions]
+        # world_ray_directions = np.array(world_ray_directions, np.float64)
+        # # print(world_ray_directions)
+        # hit_geom_ids = np.zeros(8, dtype=np.int32)
+        # hit_geom_dists = np.zeros(8, dtype=np.float64)
+        # mujoco.mj_multiRay(
+        #     m=self.model,
+        #     d=self.data,
+        #     pnt=lidar_pos,
+        #     vec=world_ray_directions.flatten(),
+        #     geomgroup=None,
+        #     flg_static=1,
+        #     bodyexclude=geom_id,
+        #     geomid=hit_geom_ids,
+        #     dist=hit_geom_dists,
+        #     nray=8,
+        #     cutoff=mujoco.mjMAXVAL
+        # )
+        # print(hit_geom_ids)
 
-        rotation_matrix = self.data.body("front_indicator").xmat.reshape(3, 3)
-        ray_direction = np.dot(rotation_matrix, ray_direction)
+        # rotation_matrix = self.data.body("front_indicator").xmat.reshape(3, 3)
+        # ray_direction = np.dot(rotation_matrix, ray_direction)
 
-        hit_geom_id = np.zeros(1, dtype=np.int32)
-        # mujoco.mj_ray(m, d, pnt, vec, None, 1, -1, unused)
-        dist = mujoco.mj_ray(
-            self.model, self.data, lidar_pos, ray_direction, None, 1, geom_id, hit_geom_id
-        )
-        if (hit_geom_id[0] == -1):
-            print("nothing")
-        else:
-            print(hit_geom_id[0])
-            print(self.model.geom(hit_geom_id[0]).name)
+        # hit_geom_id = np.zeros(1, dtype=np.int32)
+        # # mujoco.mj_ray(m, d, pnt, vec, None, 1, -1, unused)
+        # dist = mujoco.mj_ray(
+        #     self.model, self.data, lidar_pos, ray_direction, None, 1, geom_id, hit_geom_id
+        # )
+        # if (hit_geom_id[0] == -1):
+        #     print("nothing")
+        # else:
+        #     print(hit_geom_id[0])
+        #     print(self.model.geom(hit_geom_id[0]).name)
 
 
         # terminate if pitch is greater than 50deg
