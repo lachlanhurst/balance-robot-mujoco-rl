@@ -262,6 +262,18 @@ class RobotMoveBaseEnv(MujocoEnv, utils.EzPickle):
             res_distances.append(c_dist)
             res_geom_ids.append(c_geom_id)
 
+        # if distance is zero (no ray hits) set to max observable distance. Will make things easier for RL
+        res_distances = [
+            0.3 if d == 0.0 else d
+            for d in res_distances
+        ]
+
+        # if distance is negative then something has penetrated so set back to zero
+        res_distances = [
+            0.0 if d < 0.0 else d
+            for d in res_distances
+        ]
+
         return res_distances, res_geom_ids
 
     def get_pitch(self) -> float:
