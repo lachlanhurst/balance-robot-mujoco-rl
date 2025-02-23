@@ -28,10 +28,10 @@
   </worldbody>
 
   <worldbody>
-    <geom name="static_box_01" type="box" size="0.01 1.0 0.2" pos="1 0 -0.025" rgba="1 0 0 1" />
+    <geom name="static_box_01" type="box" size="0.01 1.0 0.2" pos="0.25 0 -0.025" rgba="1 0 0 1" />
   </worldbody>
   <worldbody>
-    <geom name="static_box_02" type="box" size="0.01 1.0 0.2" pos="-1 0 -0.025" rgba="0 1 0 1" />
+    <geom name="static_box_02" type="box" size="0.01 1.0 0.2" pos="-0.25 0 -0.025" rgba="0 1 0 1" />
   </worldbody>
   <worldbody>
     <geom name="static_box_03" type="box" size="1.0 0.01 0.2" pos="0 1 -0.025" rgba="0 0 1 1" />
